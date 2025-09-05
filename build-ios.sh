@@ -14,7 +14,7 @@ v8_target_cpu=\"${ARCH}\"
 enable_dsyms=false
 use_thin_lto=false
 use_lld=false
-clang_base_path=\"${XCODE_DEVELOPER_PATH}/Toolchains/XcodeDefault.xctoolchain/usr\"
+clang_base_path=\"/opt/homebrew/opt/llvm\"
 clang_use_chrome_plugins=false
 chrome_pgo_phase=0
 is_component_build=false
@@ -29,6 +29,7 @@ treat_warnings_as_errors=false
 symbol_level=0
 v8_enable_webassembly=false
 use_cxx17=true
+v8_enable_fuzztest=false
 v8_enable_sandbox=false
 ios_deployment_target=\"11.0\"
 ios_enable_code_signing=false"
@@ -46,4 +47,4 @@ echo "FINAL_ARGS:${FINAL_ARGS}"
 
 gn gen out/ios --args="${FINAL_ARGS}"
 
-ninja -C out/ios v8_monolith d8 -v
+ninja -C out/ios v8_monolith -v

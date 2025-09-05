@@ -44,13 +44,14 @@ use_cxx17=true
 v8_enable_sandbox=false
 android_ndk_root=\"${NDK_ROOT}\"
 clang_base_path=\"${NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64\"
-android_ndk_version=\"r23c\"
-android_ndk_major_version=21
-android32_ndk_api_level=19
+android_ndk_version=\"r28b\"
+android32_ndk_api_level=21
 android64_ndk_api_level=21
+use_custom_libunwind=false
+v8_enable_fuzztest=false
 use_ml_inliner=false"
 
 
 gn gen out/android --args="${ARGS}"
 
-ninja -C out/android v8_monolith d8 -v
+ninja -C out/android v8_monolith -v

@@ -36,6 +36,20 @@ jobs:
         with:
           xcode-version: latest-stable
 
+      # The current Xcode version 16.2 has a built-in Clang version 16, while the compilation requires Clang version 17. Therefore, LLVM needs to be installed now.
+      - name: Install llvm
+        run: |
+          brew install llvm
+          brew install lld
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+
+          export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
+          export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+
+          LLVM_AR_PATH=$(which llvm-ar)
+          XCODE_DEV_PATH=$(xcode-select -p)
+          sudo ln -s ${LLVM_AR_PATH} ${XCODE_DEV_PATH}/Toolchains/XcodeDefault.xctoolchain/usr/bin/llvm-ar
+
       - name: Clone DepotTools
         run: |
             cd ..
@@ -49,6 +63,12 @@ jobs:
           echo "${{ env.DEPOT_TOOLS_PATH }}"
           ls -l ${{ env.DEPOT_TOOLS_PATH }}
           xcrun clang++ -v
+
+      - name: set python
+        run: |
+          export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
+          export DEPOT_TOOLS_UPDATE=0
+          ${{ env.DEPOT_TOOLS_PATH }}/ensure_bootstrap
 
       - name: Install gn
         run: |
@@ -73,7 +93,7 @@ jobs:
           export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
           which gn
           CURRENT_DIR=$(pwd)
-          
+
           ./build-mac.sh ${{ matrix.arch }}
 
       - name: Copy to dist folder
@@ -82,7 +102,6 @@ jobs:
           echo "---------------------"
           ls -l ./out/mac/obj
           mkdir dist
-          cp ./out/mac/d8 ./dist/
           cp ./out/mac/obj/libv8_monolith.a ./dist/
           cp -r ./include ./dist/
 
@@ -116,7 +135,6 @@ jobs:
         run: |
           mkdir v8-mac-fat
           lipo -create ./v8-mac-arm64/libv8_monolith.a ./v8-mac-x64/libv8_monolith.a -output ./v8-mac-fat/libv8_monolith.a
-          lipo -create ./v8-mac-arm64/d8 ./v8-mac-x64/d8 -output ./v8-mac-fat/d8
           cp -r ./v8-mac-arm64/include ./v8-mac-fat/
 
       - name: Pack dist files
@@ -170,6 +188,12 @@ jobs:
           ls -l ${{ env.DEPOT_TOOLS_PATH }}
           xcrun clang++ -v
 
+      - name: set python
+        run: |
+          export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
+          export DEPOT_TOOLS_UPDATE=0
+          ${{ env.DEPOT_TOOLS_PATH }}/ensure_bootstrap
+
       - name: Install gn
         run: |
           wget https://chrome-infra-packages.appspot.com/dl/gn/gn/mac-amd64/+/latest -O ./gn.zip
@@ -191,8 +215,12 @@ jobs:
       - name: Install llvm
         run: |
           brew install llvm
-          echo "Install llvm succeed!"
+          brew install lld
           export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+
+          export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
+          export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
+
           LLVM_AR_PATH=$(which llvm-ar)
           echo "LLVM_AR_PATH: ${LLVM_AR_PATH}"
           XCODE_DEV_PATH=$(xcode-select -p)
@@ -204,7 +232,7 @@ jobs:
           export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
           which gn
           CURRENT_DIR=$(pwd)
-          
+
           if [[ "${{ matrix.arch }}" == "simulator-arm64" ]];then
             ./build-ios.sh arm64 simulator
           else
@@ -217,7 +245,6 @@ jobs:
           echo "---------------------"
           ls -l ./out/ios/obj
           mkdir dist
-          cp ./out/ios/obj/d8 ./dist/
           cp ./out/ios/obj/libv8_monolith.a ./dist/
           cp -r ./include ./dist/
 
@@ -258,7 +285,6 @@ jobs:
         run: |
           mkdir v8-ios-fat
           lipo -create ./v8-ios-arm64/libv8_monolith.a ./v8-ios-x64/libv8_monolith.a -output ./v8-ios-fat/libv8_monolith.a
-          lipo -create ./v8-ios-arm64/d8 ./v8-ios-x64/d8 -output ./v8-ios-fat/d8
           cp -r ./v8-ios-arm64/include ./v8-ios-fat/
           cp -r ./v8-ios-simulator-arm64 ./v8-ios-fat/
           rm -rf ./v8-ios-fat/v8-ios-simulator-arm64/include
@@ -319,11 +345,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install NDK r23c
-        uses: nttld/setup-ndk@v1.5.0
+      - name: Install NDK r28b
+        uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r23c
+          ndk-version: r28b
           add-to-path: false
           local-cache: false
 
@@ -350,6 +376,12 @@ jobs:
         run: |
           echo "${{ env.DEPOT_TOOLS_PATH }}"
           ls -l ${{ env.DEPOT_TOOLS_PATH }}
+
+      - name: set python
+        run: |
+          export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
+          export DEPOT_TOOLS_UPDATE=0
+          ${{ env.DEPOT_TOOLS_PATH }}/ensure_bootstrap
 
       - name: Install gn
         run: |
@@ -390,8 +422,6 @@ jobs:
             sed -i "s@#error@//#error@g" src/base/ubsan.cc
           fi
 
-          rm $NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/12.0.9/lib/linux/x86_64/libatomic.a
-          rm $NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/lib64/clang/12.0.9/lib/linux/i386/libatomic.a
         env:
             NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
 
@@ -400,7 +430,7 @@ jobs:
           export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
           which gn
           CURRENT_DIR=$(pwd)
-          
+
           ./build-android.sh ${{ matrix.arch }}
         env:
           NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
@@ -411,7 +441,6 @@ jobs:
           echo "---------------------"
           ls -l ./out/android/obj
           mkdir dist
-          cp ./out/android/d8 ./dist/
           cp ./out/android/obj/libv8_monolith.a ./dist/
           cp -r ./include ./dist/
 
@@ -490,7 +519,7 @@ jobs:
         build_type: [debug, release]
 
     name: "Windows"
-    runs-on: windows-2019
+    runs-on: windows-2022
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -512,14 +541,22 @@ jobs:
         run: |
           echo "env.IS_DEBUG=${{ env.IS_DEBUG }}"
           echo "----- python version -----"
+          vswhere.exe -all -products * -format json
           python --version
 
       - name: Clone DepotTools
         shell: bash
         run: |
             cd /c
+            DEPOT_TOOLS_PATH=$(pwd)/depot_tools
             git clone https://chromium.googlesource.com/chromium/tools/depot_tools.git
             ls -l /c/depot_tools
+
+      - name: set python
+        shell: bash
+        run: |
+          export PATH="/c/depot_tools:$PATH"
+          update_depot_tools
 
       - name: Install gn
         run: |
@@ -540,30 +577,37 @@ jobs:
           mkdir -p ${CURRENT_DIR}/third_party/ninja
           cp ${NINJA_PATH} ${CURRENT_DIR}/third_party/ninja/
 
-      - name: GN gen ${{ matrix.arch }}
-        shell: cmd
+      - name: Install builtin clang
         run: |
-          dir C:\depot_tools          
-          set DEPOT_TOOLS_WIN_TOOLCHAIN=0
-          set PATH=C:\depot_tools;%PATH%
-          set ARGS="is_clang=false is_debug=${{ env.IS_DEBUG }} target_cpu=""${{ matrix.arch }}"" v8_target_cpu=""${{ matrix.arch }}"" use_thin_lto=false use_lld=false clang_use_chrome_plugins=false chrome_pgo_phase=0 is_component_build=true use_custom_libcxx=false v8_use_external_startup_data=false is_official_build=false v8_enable_i18n_support=true icu_use_data_file=true treat_warnings_as_errors=false symbol_level=0 v8_enable_webassembly=true use_cxx17=true v8_enable_sandbox=false"
-          gn gen out/windows --args=%ARGS%
+          python3 ./tools/clang/scripts/update.py
 
       - name: Build ${{ matrix.arch }}-${{ matrix.build_type }}
-        run:
-          ninja -C out/windows v8_hello_world -v
+        shell: cmd
+        run: |
+          set DEPOT_TOOLS_WIN_TOOLCHAIN=0
+          set "VS_PATH=C:/Program Files/Microsoft Visual Studio/2022/Enterprise"
+          set "PATH=%VS_PATH%/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64;C:/depot_tools;%PATH%"
+          if "${{ matrix.build_type }}"=="debug" (
+              set BUILD_TYPE=Debug
+          ) else (
+              set BUILD_TYPE=Release
+          )
+          echo Build type: %BUILD_TYPE%
+          echo Matrix value: ${{ matrix.build_type }}
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
+          python3 build_windows.py --platform=x64 --libs=shared --config=%BUILD_TYPE%
 
       - name: Copy to dist folder
         shell: bash
         run: |
-          ls -l ./out/windows
+          BUILD_TYPE="${{ matrix.build_type }}"
+          ls -l ./out/windows_${BUILD_TYPE}
           echo "---------------------"
-          ls -l ./out/windows/obj
+          ls -l ./out/windows_${BUILD_TYPE}/obj
           mkdir dist
-          cp ./out/windows/*.exe ./dist/
-          cp ./out/windows/*.lib ./dist/
-          cp ./out/windows/*.dll ./dist/
-          cp ./out/windows/*.dat ./dist/
+          cp ./out/windows_${BUILD_TYPE}/*.exe ./dist/
+          cp ./out/windows_${BUILD_TYPE}/*.lib ./dist/
+          cp ./out/windows_${BUILD_TYPE}/*.dll ./dist/
           cp -r ./include ./dist/
 
       - name: Upload artifact
@@ -653,9 +697,9 @@ jobs:
           else
             echo "/usr/lib/x86_64-linux-gnu doesn't not exist."
           fi
-          
+
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v3
         id: setup-jdk
         with:
           distribution: 'zulu'
@@ -683,10 +727,10 @@ jobs:
         run: |
           echo "{}" > package.json
           echo "{\"name\": \"tests\",\"lockfileVersion\": 3,\"requires\": true,\"packages\": {}}" > package-lock.json
-      
+
       - uses: actions/setup-node@v3
         with:
-          node-version: 14
+          node-version: 18
           cache: 'npm'
 
       - if: ${{ steps.cache-oh-sdk.outputs.cache-hit != 'true' }}
@@ -695,29 +739,14 @@ jobs:
         run: |
           if [ ! -d "$HOME/openharmony" ]; then
             mkdir -p $HOME/openharmony
-            echo "Download commandline-tools-linux.zip ..."
-            curl -o commandline-tools-linux.zip "https://contentcenter-vali-drcn.dbankcdn.cn/pvt_2/DeveloperAlliance_package_901_9/b1/v3/E6zhv5UFQ2-inIwNJhTN6Q/commandline-tools-linux-2.0.0.2.zip?HW-CC-KV=V1&HW-CC-Date=20230621T074401Z&HW-CC-Expire=315360000&HW-CC-Sign=621224257B02079B1E76C0A56FDF21483400B1E3556213F88DC79BC9BE7D595D"
+            echo $HOME/openharmony
+            echo "Download commandline-tools-linux.zip from https://developer.huawei.com/consumer/cn/download/"
+            curl -o commandline-tools-linux.zip "https://contentcenter-vali-drcn.dbankcdn.cn/pvt_2/DeveloperAlliance_package_901_9/cd/v3/aU6sXvKQTDGmmY-U36eR3Q/commandline-tools-linux-x64-5.1.1.830.zip?HW-CC-KV=V1&HW-CC-Date=20250808T095639Z&HW-CC-Expire=7200&HW-CC-Sign=7B38D66E8B02A6F7BFBE78CEA44A17E82001729CBAA1D65BA5F64732441FB724"
             echo "Unzip commandline-tools-linux.zip ..."
             unzip commandline-tools-linux.zip -d $HOME/openharmony > /dev/null
             cd $HOME/openharmony
             ls -l
-            cd command-line-tools
-            echo "=============== PATCHING sdkmanager/bin/sdkmgr file ==============="
-            sed -i "s@-Dfile.encoding=UTF-8@-Dfile.encoding=UTF-8 -Duser.country=CN@g" ./sdkmanager/bin/sdkmgr
-            cd bin
-            ./sdkmgr list
-            echo "=============== INSTALL HOS toolchains:9 ==============="
-            ./sdkmgr install toolchains:9 --accept-license > /dev/null
-            echo "=============== INSTALL OH SDK ets:9 ==============="
-            ./sdkmgr install OpenHarmony/ets:9 --accept-license > /dev/null
-            echo "=============== INSTALL OH SDK js:9 ==============="
-            ./sdkmgr install OpenHarmony/js:9 --accept-license > /dev/null
-            echo "=============== INSTALL OH SDK native:9 ==============="
-            ./sdkmgr install OpenHarmony/native:9 --accept-license > /dev/null
-            echo "=============== INSTALL OH SDK toolchains:9 ==============="
-            ./sdkmgr install OpenHarmony/toolchains:9 --accept-license > /dev/null
-            echo "=============== INSTALL OH SDK DONE ==============="
-            ./sdkmgr list
+            ls -l $HOME/openharmony/command-line-tools/sdk/default/openharmony/native/llvm/bin
           fi
 
       - name: Clone DepotTools
@@ -732,6 +761,12 @@ jobs:
         run: |
           echo "${{ env.DEPOT_TOOLS_PATH }}"
           ls -l ${{ env.DEPOT_TOOLS_PATH }}
+
+      - name: set python
+        run: |
+          export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
+          export DEPOT_TOOLS_UPDATE=0
+          ${{ env.DEPOT_TOOLS_PATH }}/ensure_bootstrap
 
       - name: Install gn
         run: |
@@ -778,12 +813,13 @@ jobs:
 
       - name: Patch args
         run: |
-          touch ${HOME}/openharmony/hwsdk/openharmony/9/native/llvm/lib/arm-linux-ohos/c++/libatomic.a
-          touch ${HOME}/openharmony/hwsdk/openharmony/9/native/llvm/lib/aarch64-linux-ohos/c++/libatomic.a
           sed -i "s@arm-linux-gnueabihf@arm-linux-ohos@g" build/config/compiler/BUILD.gn
           sed -i "s@aarch64-linux-gnu@aarch64-linux-ohos@g" build/config/compiler/BUILD.gn
           sed -i "s@\"-gsimple-template-names\"@@g" build/config/compiler/BUILD.gn
           sed -i "s@strip_absolute_paths_from_debug_symbols = true@strip_absolute_paths_from_debug_symbols = false@g" build/config/compiler/compiler.gni
+          sed -i "s@,-mllvm,-split-threshold-for-reg-with-hint=0@@g" build/config/compiler/BUILD.gn
+          sed -i '580,583d' build/config/compiler/BUILD.gn
+
           sed -i "s@__builtin_assume_aligned((ptr), (alignment))@(ptr)@g" include/v8config.h
           sed -i "s@if (is_ubsan && (v8_current_cpu@if ((v8_current_cpu@g" BUILD.gn
           if [[ "${{ matrix.arch }}" == "arm" || "${{ matrix.arch }}" == "x86" ]];then
@@ -805,7 +841,6 @@ jobs:
           echo "---------------------"
           ls -l ./out/oh/obj
           mkdir dist
-          cp ./out/oh/d8 ./dist/
           cp ./out/oh/obj/libv8_monolith.a ./dist/
           cp -r ./include ./dist/
 
@@ -887,6 +922,12 @@ jobs:
           echo "${{ env.DEPOT_TOOLS_PATH }}"
           ls -l ${{ env.DEPOT_TOOLS_PATH }}
 
+      - name: set python
+        run: |
+          export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
+          export DEPOT_TOOLS_UPDATE=0
+          ${{ env.DEPOT_TOOLS_PATH }}/ensure_bootstrap
+
       - name: Install gn
         run: |
           wget https://chrome-infra-packages.appspot.com/dl/gn/gn/linux-amd64/+/latest -O ./gn.zip
@@ -926,7 +967,7 @@ jobs:
           export PATH=${{ env.DEPOT_TOOLS_PATH }}:$PATH
           which gn
           CURRENT_DIR=$(pwd)
-          
+
           ./build-linux.sh ${{ matrix.arch }}
 
       - name: Copy to dist folder
@@ -935,7 +976,6 @@ jobs:
           echo "---------------------"
           ls -l ./out/linux/obj
           mkdir dist
-          cp ./out/linux/d8 ./dist/
           cp ./out/linux/obj/libv8_monolith.a ./dist/
           cp -r ./include ./dist/
 
@@ -962,4 +1002,3 @@ jobs:
           file: dist/v8-linux.zip
           asset_name: v8-linux.zip
           tag: ${{ github.ref }}
-
