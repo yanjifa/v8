@@ -37,10 +37,18 @@ jobs:
         run: |
           brew install llvm@20
           brew install lld@20
-          export PATH="/opt/homebrew/opt/llvm@20/bin:$PATH"
 
-          export LDFLAGS="-L/opt/homebrew/opt/llvm@20/lib"
-          export CPPFLAGS="-I/opt/homebrew/opt/llvm@20/include"
+          cd /opt/homebrew/opt
+          ln -s ../Cellar/llvm@20/20.1.8 llvm
+          ln -s ../Cellar/lld@20/20.1.8 lld
+
+          brew link llvm@20
+          brew link lld@20
+
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+
+          export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
+          export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
 
           LLVM_AR_PATH=$(which llvm-ar)
           XCODE_DEV_PATH=$(xcode-select -p)
@@ -206,12 +214,12 @@ jobs:
 
       - name: Install llvm
         run: |
-          brew install llvm@20
-          brew install lld@20
-          export PATH="/opt/homebrew/opt/llvm@20/bin:$PATH"
+          brew install llvm
+          brew install lld
+          export PATH="/opt/homebrew/opt/llvm/bin:$PATH"
 
-          export LDFLAGS="-L/opt/homebrew/opt/llvm@20/lib"
-          export CPPFLAGS="-I/opt/homebrew/opt/llvm@20/include"
+          export LDFLAGS="-L/opt/homebrew/opt/llvm/lib"
+          export CPPFLAGS="-I/opt/homebrew/opt/llvm/include"
 
           LLVM_AR_PATH=$(which llvm-ar)
           echo "LLVM_AR_PATH: ${LLVM_AR_PATH}"
