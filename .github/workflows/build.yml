@@ -27,10 +27,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
       - name: Select XCode Version
         uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd
         with:
@@ -164,10 +160,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
 
       - name: Select XCode Version
         uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd
@@ -359,10 +351,10 @@ jobs:
           ls -l $HOME
           echo "Show ndk-path"
           ls -l ${{ steps.setup-ndk.outputs.ndk-path }}
+          echo "Show ndk in hostedtoolcache"
+          ls -l ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/
           echo "Show clang"
           ls -l ${{ steps.setup-ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++
-          echo "Show ndk in hostedtoolcache"
-          ls -l /opt/hostedtoolcache/ndk/r23c/x64/toolchains/llvm/prebuilt/linux-x86_64/bin/
 
       - name: Clone DepotTools
         run: |
@@ -741,7 +733,7 @@ jobs:
             mkdir -p $HOME/openharmony
             echo $HOME/openharmony
             echo "Download commandline-tools-linux.zip from https://developer.huawei.com/consumer/cn/download/"
-            curl -o commandline-tools-linux.zip "https://contentcenter-vali-drcn.dbankcdn.cn/pvt_2/DeveloperAlliance_package_901_9/cd/v3/aU6sXvKQTDGmmY-U36eR3Q/commandline-tools-linux-x64-5.1.1.830.zip?HW-CC-KV=V1&HW-CC-Date=20250808T095639Z&HW-CC-Expire=7200&HW-CC-Sign=7B38D66E8B02A6F7BFBE78CEA44A17E82001729CBAA1D65BA5F64732441FB724"
+            curl -o commandline-tools-linux.zip "https://contentcenter-vali-drcn.dbankcdn.cn/pvt_2/DeveloperAlliance_package_901_9/47/v3/0W78l37xRDCS2TxV_GXrTg/commandline-tools-linux-x64-5.0.13.230.zip?HW-CC-KV=V1&HW-CC-Date=20250905T042946Z&HW-CC-Expire=7200&HW-CC-Sign=9F6E7E33D36B2F71A78D5F28EEE944970F945406416DC83F086EB3366A938D70"
             echo "Unzip commandline-tools-linux.zip ..."
             unzip commandline-tools-linux.zip -d $HOME/openharmony > /dev/null
             cd $HOME/openharmony
